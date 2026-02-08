@@ -1,0 +1,280 @@
+# Bank Transfer Example
+# Demonstrates VibeLang's contract system and formal verification
+
+## Type Definitions
+
+type Money = Int
+  invariant value >= 0
+  invariant value <= 9999999999
+
+type PositiveMoney = Money
+  invariant value > 0
+
+type AccountId = String
+  invariant self.length() > 0
+  invariant self.length() <= 64
+
+type Account = {
+  id: AccountId,
+  balance: Money,
+  owner: String,
+  active: Bool
+}
+  invariant balance >= 0
+  invariant owner.length() > 0
+
+type TransferError =
+  | InsufficientFunds
+  | AccountNotFound
+  | AccountInactive
+  | InvalidAmount
+  | TransferLimitExceeded
+
+type TransferReceipt = {
+  fromAccount: AccountId,
+  toAccount: AccountId,
+  amount: PositiveMoney,
+  timestamp: Int,
+  transactionId: String
+}
+
+## Transfer Function with Contracts
+
+define transfer(
+  from: Account,
+  to: Account,
+  amount: PositiveMoney
+) -> Result[TransferReceipt, TransferError]
+  # Preconditions - must be satisfied by caller
+  expect from.active == true
+  expect to.active == true
+  expect from.balance >= amount
+  expect amount > 0
+  expect amount <= 1000000  # Daily transfer limit
+  
+  # Postconditions - guaranteed by implementation
+  ensure from.balance == old(from.balance) - amount
+  ensure to.balance == old(to.balance) + amount
+  ensure result.isSuccess() -> (
+    result.value().amount == amount &&
+    result.value().fromAccount == from.id &&
+    result.value().toAccount == to.id
+  )
+given
+  # Validate accounts
+  when !from.active
+    Error(AccountInactive)
+  otherwise when !to.active
+    Error(AccountInactive)
+  otherwise when from.balance < amount
+    Error(InsufficientFunds)
+  otherwise when amount <= 0
+    Error(InvalidAmount)
+  otherwise when amount > 1000000
+    Error(TransferLimitExceeded)
+  otherwise
+    # Perform transfer
+    newFromBalance = from.balance - amount
+    newToBalance = to.balance + amount
+    
+    # Update accounts (immutable updates)
+    updatedFrom = { ...from, balance: newFromBalance }
+    updatedTo = { ...to, balance: newToBalance }
+    
+    # Create receipt
+    receipt = {
+      fromAccount: from.id,
+      toAccount: to.id,
+      amount: amount,
+      timestamp: currentTimestamp(),
+      transactionId: generateTransactionId()
+    }
+    
+    Success(receipt)
+
+## Batch Transfer with Invariant
+
+define batchTransfer(
+  from: Account,
+  transfers: Array[{to: Account, amount: PositiveMoney}]
+) -> Result[Array[TransferReceipt], TransferError]
+  expect from.active == true
+  expect transfers.length() > 0
+  expect transfers.length() <= 100  # Max batch size
+  
+  # Total amount must not exceed balance
+  expect sum(transfers.map(t -> t.amount)) <= from.balance
+  
+  ensure result.isSuccess() -> (
+    result.value().length() == transfers.length()
+  )
+  ensure result.isSuccess() -> (
+    from.balance == old(from.balance) - sum(transfers.map(t -> t.amount))
+  )
+given
+  totalAmount = sum(transfers.map(t -> t.amount))
+  
+  when from.balance < totalAmount
+    Error(InsufficientFunds)
+  otherwise
+    # Process each transfer
+    processTransfers(from, transfers, [])
+
+define processTransfers(
+  from: Account,
+  remaining: Array[{to: Account, amount: PositiveMoney}],
+  receipts: Array[TransferReceipt]
+) -> Result[Array[TransferReceipt], TransferError]
+  invariant from.balance >= 0
+given
+  when remaining.length() == 0
+    Success(receipts)
+  otherwise
+    current = remaining[0]
+    rest = remaining.slice(1)
+    
+    given transfer(from, current.to, current.amount)
+      Success(receipt) ->
+        processTransfers(from, rest, receipts.append(receipt))
+      Error(err) ->
+        Error(err)
+
+## Account Creation
+
+define createAccount(
+  id: AccountId,
+  owner: String,
+  initialBalance: Money
+) -> Result[Account, String]
+  expect id.length() > 0
+  expect owner.length() > 0
+  expect initialBalance >= 0
+  
+  ensure result.isSuccess() -> (
+    result.value().id == id &&
+    result.value().owner == owner &&
+    result.value().balance == initialBalance &&
+    result.value().active == true
+  )
+given
+  when id.length() == 0
+    Error("Invalid account ID")
+  otherwise when owner.length() == 0
+    Error("Invalid owner name")
+  otherwise when initialBalance < 0
+    Error("Initial balance cannot be negative")
+  otherwise
+    Success({
+      id: id,
+      balance: initialBalance,
+      owner: owner,
+      active: true
+    })
+
+## Account Balance Check
+
+define checkBalance(account: Account) -> Money
+  expect account.active == true
+  ensure result == account.balance
+  ensure result >= 0
+given
+  account.balance
+
+## Deposit Function
+
+define deposit(
+  account: Account,
+  amount: PositiveMoney
+) -> Result[Account, String]
+  expect account.active == true
+  expect amount > 0
+  
+  ensure result.isSuccess() -> (
+    result.value().balance == old(account.balance) + amount
+  )
+  ensure result.isSuccess() -> (
+    result.value().id == account.id &&
+    result.value().owner == account.owner
+  )
+given
+  when !account.active
+    Error("Account is not active")
+  otherwise when amount <= 0
+    Error("Deposit amount must be positive")
+  otherwise
+    newBalance = account.balance + amount
+    Success({ ...account, balance: newBalance })
+
+## Withdraw Function
+
+define withdraw(
+  account: Account,
+  amount: PositiveMoney
+) -> Result[Account, TransferError]
+  expect account.active == true
+  expect amount > 0
+  expect account.balance >= amount
+  
+  ensure result.isSuccess() -> (
+    result.value().balance == old(account.balance) - amount
+  )
+  ensure result.isSuccess() -> (
+    result.value().balance >= 0
+  )
+given
+  when !account.active
+    Error(AccountInactive)
+  otherwise when amount <= 0
+    Error(InvalidAmount)
+  otherwise when account.balance < amount
+    Error(InsufficientFunds)
+  otherwise
+    newBalance = account.balance - amount
+    Success({ ...account, balance: newBalance })
+
+## Helper Functions
+
+define generateTransactionId() -> String
+given
+  # Generate unique transaction ID
+  "TXN-" + timestamp() + "-" + randomUUID()
+
+define currentTimestamp() -> Int
+given
+  # Return current Unix timestamp
+  systemTime()
+
+define sum(amounts: Array[PositiveMoney]) -> Money
+  invariant result >= 0
+given
+  amounts.reduce(0, (acc, amount) -> acc + amount)
+
+## Usage Example
+
+define exampleUsage() -> Result[Unit, TransferError]
+given
+  # Create accounts
+  given createAccount("ACC001", "Alice", 10000)
+    Success(aliceAccount) ->
+      given createAccount("ACC002", "Bob", 5000)
+        Success(bobAccount) ->
+          # Transfer money
+          given transfer(aliceAccount, bobAccount, 500)
+            Success(receipt) ->
+              # Print receipt
+              printReceipt(receipt)
+              Success(Unit)
+            Error(err) ->
+              Error(err)
+        Error(_) ->
+          Error(AccountNotFound)
+    Error(_) ->
+      Error(AccountNotFound)
+
+define printReceipt(receipt: TransferReceipt) -> Unit
+given
+  print("Transfer Receipt")
+  print("From: " + receipt.fromAccount)
+  print("To: " + receipt.toAccount)
+  print("Amount: " + receipt.amount.toString())
+  print("Transaction ID: " + receipt.transactionId)
