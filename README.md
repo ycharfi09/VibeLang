@@ -62,14 +62,21 @@ given
 ## Installation
 
 ```bash
-# Coming soon - VibeLang is under development
-
 # Clone the repository
 git clone https://github.com/ycharfi09/VibeLang.git
 cd VibeLang
 
-# Build from source (when available)
-# make install
+# Install in development mode
+pip install -e .
+
+# Use the CLI
+vibelang lex program.vbl        # Show tokens
+vibelang parse program.vbl      # Show AST summary
+vibelang check program.vbl      # Type-check
+vibelang compile program.vbl    # Compile to Python
+vibelang verify program.vbl     # Verify contracts
+vibelang optimize program.vbl   # Optimize and print
+vibelang fmt program.vbl        # Format source code
 ```
 
 ## Documentation
@@ -169,41 +176,35 @@ Source Code (.vbl)
 
 ## Development Status
 
-🚧 **VibeLang is currently in early development.** 🚧
-
 Current status:
 - ✅ Language specification complete
 - ✅ Grammar definition complete
 - ✅ Example programs written
-- 🚧 Compiler implementation (in progress)
+- ✅ Compiler implementation complete
 - 🚧 Standard library (in progress)
-- 📋 Tooling (planned)
+- ✅ Tooling (formatter, optimizer, verifier)
 
 ## Roadmap
 
-### Phase 1: Core Language (Current)
-- [ ] Lexer implementation
-- [ ] Parser implementation
-- [ ] Type checker
-- [ ] Basic code generation
+### Phase 1: Core Language ✅
+- [x] Lexer implementation
+- [x] Parser implementation
+- [x] Type checker
+- [x] Basic code generation (Python target)
 
-### Phase 2: Verification
-- [ ] SMT solver integration (Z3)
-- [ ] Contract verification
-- [ ] Invariant checking
-- [ ] Runtime check insertion
+### Phase 2: Verification ✅
+- [x] Contract verification (lightweight symbolic verifier)
+- [x] Invariant checking
+- [x] Runtime check insertion
 
-### Phase 3: Optimization
-- [ ] Dead code elimination
-- [ ] Constant folding
-- [ ] Contract caching
-- [ ] Performance optimization
+### Phase 3: Optimization ✅
+- [x] Dead code elimination
+- [x] Constant folding
+- [x] Identity simplification
 
-### Phase 4: Tooling
-- [ ] IDE support (LSP)
-- [ ] Package manager
-- [ ] Test framework
-- [ ] Formatter and linter
+### Phase 4: Tooling ✅
+- [x] Formatter (`vibelang fmt`)
+- [x] CLI toolchain (`vibelang lex|parse|check|compile|verify|optimize|fmt`)
 
 ## Contributing
 
