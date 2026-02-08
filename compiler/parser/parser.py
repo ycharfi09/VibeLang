@@ -145,13 +145,19 @@ class Parser:
         # Parse type definition body
         definition = self.parse_type_definition()
 
-        # Parse invariants
+        # Parse invariants (may be indented)
         invariants: List[Expression] = []
         self.skip_newlines()
+        has_indent = False
+        if self.peek().type == TokenType.INDENT:
+            self.advance()
+            has_indent = True
         while self.peek().type == TokenType.INVARIANT:
             self.advance()
             invariants.append(self.parse_expression())
             self.skip_newlines()
+        if has_indent and self.peek().type == TokenType.DEDENT:
+            self.advance()
 
         return TypeDeclaration(
             name=name,
@@ -339,6 +345,13 @@ class Parser:
                 self.advance()
                 postconditions.append(self.parse_expression())
             self.skip_newlines()
+
+        # Close the outer indent that wrapped the contracts
+        if has_outer_indent and self.peek().type == TokenType.DEDENT:
+            self.advance()
+            has_outer_indent = False
+
+        self.skip_newlines()
 
         # Body
         self.expect(TokenType.GIVEN)
