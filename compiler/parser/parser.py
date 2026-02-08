@@ -1,6 +1,6 @@
 """VibeLang Parser - transforms tokens into an Abstract Syntax Tree."""
 
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from compiler.lexer.lexer import Token, TokenType
 from .ast_nodes import (
@@ -640,7 +640,7 @@ class Parser:
 
     def _parse_record_literal(self) -> RecordLiteral:
         lbrace = self.expect(TokenType.LBRACE)
-        fields: List[tuple] = []
+        fields: List[Tuple[str, Expression]] = []
 
         self.skip_newlines()
         while self.peek().type != TokenType.RBRACE:
