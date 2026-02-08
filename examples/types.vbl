@@ -1,0 +1,373 @@
+# Type System Examples
+# Demonstrates VibeLang's type system features
+
+## Primitive Types
+
+define primitiveExample() -> Unit
+given
+  # Integer type - arbitrary precision
+  age: Int = 25
+  maxValue: Int = 999999999
+  
+  # Float type - IEEE 754 double precision
+  price: Float = 99.99
+  pi: Float = 3.14159265359
+  
+  # Boolean type
+  isActive: Bool = true
+  hasError: Bool = false
+  
+  # String type - UTF-8 encoded
+  name: String = "VibeLang"
+  emoji: String = "🚀"
+  
+  # Byte type
+  statusCode: Byte = 200
+  
+  # Unit type (void)
+  nothing: Unit = Unit
+
+## Refined Types with Invariants
+
+type PositiveMoney = Int
+  invariant value > 0
+  invariant value <= 9999999999
+
+type NonNegativeMoney = Int
+  invariant value >= 0
+
+type Percentage = Float
+  invariant self >= 0.0
+  invariant self <= 100.0
+
+type NonEmptyString = String
+  invariant self.length() > 0
+
+type BoundedString = String
+  invariant self.length() <= 255
+
+type EmailAddress = String
+  invariant self.contains("@")
+  invariant self.length() >= 3
+  invariant self.length() <= 320
+
+type Port = Int
+  invariant value >= 0
+  invariant value <= 65535
+
+type Age = Int
+  invariant value >= 0
+  invariant value <= 150
+
+## Algebraic Data Types (Sum Types)
+
+type Result[T, E] =
+  | Success(T)
+  | Error(E)
+
+type Option[T] =
+  | Some(T)
+  | None
+
+type PaymentMethod =
+  | CreditCard(String, Int)  # Card number, expiry
+  | BankTransfer(String)      # Account number
+  | Cash
+  | Cryptocurrency(String)    # Wallet address
+
+type Shape =
+  | Circle(Float)             # radius
+  | Rectangle(Float, Float)   # width, height
+  | Triangle(Float, Float, Float)  # three sides
+
+type Color =
+  | RGB(Int, Int, Int)
+  | RGBA(Int, Int, Int, Float)
+  | Hex(String)
+  | Named(String)
+
+## Product Types (Records)
+
+type Person = {
+  name: NonEmptyString,
+  age: Age,
+  email: EmailAddress,
+  active: Bool
+}
+  invariant age >= 0
+  invariant name.length() > 0
+
+type Point = {
+  x: Float,
+  y: Float
+}
+
+type Rectangle = {
+  topLeft: Point,
+  width: Float,
+  height: Float
+}
+  invariant width > 0
+  invariant height > 0
+
+type BankAccount = {
+  id: String,
+  owner: Person,
+  balance: NonNegativeMoney,
+  currency: String,
+  active: Bool
+}
+  invariant balance >= 0
+  invariant id.length() > 0
+  invariant currency.length() == 3  # ISO 4217 code
+
+## Array Types with Bounds
+
+type BoundedArray[T] = Array[T]
+  invariant self.length() <= 1000
+
+type NonEmptyArray[T] = Array[T]
+  invariant self.length() > 0
+
+type SmallBuffer = Array[Byte]
+  invariant self.length() <= 4096
+
+## Function Types
+
+type Predicate[T] = (T) -> Bool
+
+type Comparator[T] = (T, T) -> Int
+
+type Transformer[T, U] = (T) -> U
+
+type ErrorHandler = (String) -> Unit
+
+## Working with Result Types
+
+define dividePositive(a: PositiveMoney, b: PositiveMoney) -> Result[Float, String]
+  expect a > 0
+  expect b > 0
+  ensure result.isSuccess() -> result.value() > 0
+given
+  when b == 0
+    Error("Division by zero")
+  otherwise
+    Success(a.toFloat() / b.toFloat())
+
+define parseAge(input: String) -> Result[Age, String]
+  ensure result.isSuccess() -> (
+    result.value() >= 0 && result.value() <= 150
+  )
+given
+  given parseInt(input)
+    Success(value) ->
+      when value >= 0 && value <= 150
+        Success(value)
+      otherwise
+        Error("Age must be between 0 and 150")
+    Error(_) ->
+      Error("Invalid integer format")
+
+## Pattern Matching with Types
+
+define processPayment(method: PaymentMethod, amount: PositiveMoney) -> Result[String, String]
+  expect amount > 0
+given
+  given method
+    CreditCard(number, expiry) ->
+      processCreditCard(number, expiry, amount)
+    BankTransfer(account) ->
+      processBankTransfer(account, amount)
+    Cash ->
+      Success("Cash payment accepted")
+    Cryptocurrency(wallet) ->
+      processCrypto(wallet, amount)
+
+define calculateArea(shape: Shape) -> Float
+  ensure result > 0
+given
+  given shape
+    Circle(radius) ->
+      3.14159 * radius * radius
+    Rectangle(width, height) ->
+      width * height
+    Triangle(a, b, c) ->
+      # Heron's formula
+      s = (a + b + c) / 2.0
+      sqrt(s * (s - a) * (s - b) * (s - c))
+
+## Type Guards and Narrowing
+
+define processValue(value: Int) -> String
+given
+  when value > 0
+    # Type narrowed to PositiveInt here
+    "Positive: " + value.toString()
+  otherwise when value < 0
+    # Type narrowed to NegativeInt here
+    "Negative: " + value.toString()
+  otherwise
+    # Type narrowed to Zero here
+    "Zero"
+
+define validateEmail(input: String) -> Result[EmailAddress, String]
+given
+  when input.contains("@") && input.length() >= 3 && input.length() <= 320
+    # Type guard narrows to EmailAddress
+    Success(input)
+  otherwise
+    Error("Invalid email address")
+
+## PositiveMoney Example (as specified)
+
+type PositiveMoney = Int
+  invariant value > 0
+  invariant value <= 9999999999
+
+define createPositiveMoney(amount: Int) -> Result[PositiveMoney, String]
+  ensure result.isSuccess() -> (
+    result.value() > 0 && result.value() <= 9999999999
+  )
+given
+  when amount <= 0
+    Error("Amount must be positive")
+  otherwise when amount > 9999999999
+    Error("Amount exceeds maximum allowed value")
+  otherwise
+    Success(amount)
+
+define addMoney(a: PositiveMoney, b: PositiveMoney) -> Result[PositiveMoney, String]
+  expect a > 0
+  expect b > 0
+  ensure result.isSuccess() -> result.value() > 0
+given
+  sum = a + b
+  when sum > 9999999999
+    Error("Sum exceeds maximum allowed value")
+  otherwise
+    Success(sum)
+
+define multiplyMoney(amount: PositiveMoney, factor: Float) -> Result[PositiveMoney, String]
+  expect amount > 0
+  expect factor > 0.0
+  ensure result.isSuccess() -> result.value() > 0
+given
+  product = (amount.toFloat() * factor).toInt()
+  when product <= 0
+    Error("Result is not positive")
+  otherwise when product > 9999999999
+    Error("Result exceeds maximum allowed value")
+  otherwise
+    Success(product)
+
+## Option Type Usage
+
+define findPerson(id: String, people: Array[Person]) -> Option[Person]
+given
+  result = people.find(p -> p.email == id)
+  when result.isEmpty()
+    None
+  otherwise
+    Some(result.get())
+
+define getOrDefault(option: Option[Int], default: Int) -> Int
+given
+  given option
+    Some(value) -> value
+    None -> default
+
+## Generic Types
+
+type Pair[A, B] = {
+  first: A,
+  second: B
+}
+
+type Triple[A, B, C] = {
+  first: A,
+  second: B,
+  third: C
+}
+
+define swap[A, B](pair: Pair[A, B]) -> Pair[B, A]
+given
+  { first: pair.second, second: pair.first }
+
+define mapFirst[A, B, C](pair: Pair[A, B], f: (A) -> C) -> Pair[C, B]
+given
+  { first: f(pair.first), second: pair.second }
+
+## Memory-Bounded Types
+
+type SafeBuffer = Array[Byte]
+  invariant self.length() <= 8192
+  invariant self.capacity() <= 16384
+
+type SmallString = String
+  invariant self.bytes() <= 1024
+
+type LimitedList[T] = Array[T]
+  invariant self.length() <= 10000
+  invariant self.sizeInBytes() <= 1048576  # 1 MB
+
+## Complex Type Composition
+
+type Transaction = {
+  id: String,
+  from: BankAccount,
+  to: BankAccount,
+  amount: PositiveMoney,
+  timestamp: Int,
+  status: TransactionStatus
+}
+  invariant amount > 0
+  invariant id.length() > 0
+  invariant timestamp > 0
+
+type TransactionStatus =
+  | Pending
+  | Completed
+  | Failed(String)
+  | Cancelled
+
+type TransactionHistory = {
+  account: BankAccount,
+  transactions: Array[Transaction]
+}
+  invariant transactions.length() <= 10000
+
+## Type Aliases
+
+type UserId = String
+type Timestamp = Int
+type Amount = PositiveMoney
+type ErrorMessage = String
+
+## Usage Examples
+
+define exampleUsage() -> Result[Unit, String]
+given
+  # Create positive money
+  given createPositiveMoney(1000)
+    Success(amount1) ->
+      given createPositiveMoney(500)
+        Success(amount2) ->
+          given addMoney(amount1, amount2)
+            Success(total) ->
+              print("Total: " + total.toString())
+              Success(Unit)
+            Error(msg) ->
+              Error(msg)
+        Error(msg) ->
+          Error(msg)
+    Error(msg) ->
+      Error(msg)
+
+define typeGuardExample(input: String) -> String
+given
+  given validateEmail(input)
+    Success(email) ->
+      # email has type EmailAddress here
+      "Valid email: " + email
+    Error(msg) ->
+      "Invalid: " + msg

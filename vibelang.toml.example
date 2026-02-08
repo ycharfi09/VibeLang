@@ -1,0 +1,103 @@
+# VibeLang Project Configuration
+
+# Project metadata
+[project]
+name = "VibeLang"
+version = "0.1.0"
+description = "An AI-native programming language with formal verification"
+license = "MIT"
+authors = ["Youssef Charfi"]
+
+# Compiler settings
+[compiler]
+# Target architecture: native, wasm, js
+target = "native"
+
+# Optimization level: 0 (none), 1 (basic), 2 (standard), 3 (aggressive)
+optimization = 2
+
+# Enable/disable warnings
+warnings = true
+
+# Treat warnings as errors
+warnings_as_errors = false
+
+# Output directory
+output_dir = "build"
+
+# Verification settings
+[verification]
+# Verification level: none, runtime, hybrid, full
+level = "hybrid"
+
+# SMT solver timeout (seconds)
+timeout = 30
+
+# Number of parallel verification workers
+workers = 4
+
+# Report unproven contracts as warnings or errors
+unproven_severity = "warning"
+
+# Enable specific optimizations
+[verification.optimizations]
+constant_folding = true
+dead_code_elimination = true
+contract_caching = true
+
+# Code style settings
+[style]
+# Indentation: always 2 spaces (enforced by language)
+indent_spaces = 2
+
+# Maximum line length (recommendation, not enforced)
+max_line_length = 100
+
+# Require contracts on all public functions
+require_contracts = true
+
+# Test settings
+[test]
+# Test directory
+test_dir = "tests"
+
+# Test file pattern
+test_pattern = "test_*.vbl"
+
+# Enable coverage reporting
+coverage = true
+
+# Minimum coverage percentage
+min_coverage = 80
+
+# Dependencies
+[dependencies]
+# Example:
+# stdlib = { version = "0.1.0", path = "./stdlib" }
+
+# Development dependencies
+[dev-dependencies]
+# Example:
+# test-framework = "0.1.0"
+
+# Build settings
+[build]
+# Include source maps
+source_maps = true
+
+# Strip debug info in release builds
+strip_debug = false
+
+# Enable link-time optimization
+lto = true
+
+# Logging settings
+[logging]
+# Log level: debug, info, warn, error
+level = "info"
+
+# Log format: text, json
+format = "text"
+
+# Log to file
+log_file = "vibelang.log"

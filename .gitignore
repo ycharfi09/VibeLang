@@ -1,0 +1,70 @@
+# VibeLang Compiler outputs
+*.vbl.out
+*.vbl.bc
+*.vbl.ll
+*.vbl.js
+
+# Build artifacts
+/build/
+/dist/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Compiler cache
+.vibelang-cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Virtual environments
+venv/
+env/
+.env
+.venv
+
+# Test outputs
+/test-output/
+coverage/
+.coverage
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+
+# Package manager
+node_modules/
+.npm/
+package-lock.json
+
+# Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# Documentation builds
+/docs/_build/
+/docs/.doctrees/
+
+# Z3 solver temp files
+*.smt2
+*.z3-trace
+
+# Verification reports
+verification-report.txt
+verification-report.html
